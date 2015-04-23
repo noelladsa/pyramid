@@ -1,39 +1,34 @@
 import sys
-import threading
 
 class PyramidGraph(object):
 
-    # Reads a line of nubers and returns a list of nodes
-    def GetNodes(self,stringOfNumbers):
-        nodeList = []
-        if not stringOfNumbers:
-            return nodeList
 
-        numberStrs = stringOfNumbers.strip().split( " ")
+    # Reads a line of nubers and returns a list of nodes
+    def GetNodes(self, numString):
+        nodes = []
+        if not numString:
+            return nodes
+
+        numberStrs = numString.strip().split(" ")
         for numberStr in numberStrs:
-            number = int(numberStr)
-            node = {}
-            node["data"] = number
-            nodeList.append(node)
-        return nodeList
+            node = {"data": int(numberStr)}
+            nodes.append(node)
+        return nodes
 
     # Takes two nodelists connecting the children to the parents.
     # Each parent node adds a child node to its left and right
     # in the form of a connected graph
-    def AddChildNodes(self,parentNodeList,childNodeList):
-        if parentNodeList is not None:
+    def AddChildren(self, parents, children):
+        if parents :
             index = 0
-            for parentNode in parentNodeList:
-                parentNode["left"] = childNodeList[index]
+            for parent in parents:
+                parent["left"] = children[index]
                 index += 1
-                parentNode["right"] = childNodeList[index]
+                parent["right"] = children[index]
 
-    def GetLines(self,filePath):
-        file = open(filePath,"r")
-        str = file.read()
-        file.close()
-        lines = str.split("\n")
-        return lines
+    def GetLines(self, filePath):
+        with open(filePath, "r") as f:
+            return f.read().split("\n")
 
     # Reads a file with numbers arranged in pyramid as follows
     # and created a connected graph
@@ -41,33 +36,26 @@ class PyramidGraph(object):
     #          2 2
     #         3 3 3
 
-    def __init__(self,filePath):
+    def __init__(self, filePath):
         lines = self.GetLines(filePath)
-        prevNodeList = None;
-        prevNodeCount = 0; #Maintains a counter to check the number of nodes at a given line
-        self.nodeCount = 0;
-
+        prevNodeList = None
         for line in lines:
-            nodeList = self.GetNodes(line)
-            numberOfNodes = len(nodeList)
-            if prevNodeCount ==  numberOfNodes - 1:  #Pyramid is growing correctly, continue adding nodes
-                if prevNodeCount == 0:
-                    self.rootNode = nodeList[0] #Begining of the pyramid
-                prevNodeCount = numberOfNodes
-                self.nodeCount = self.nodeCount + numberOfNodes
-                self.AddChildNodes(prevNodeList,nodeList)
-                prevNodeList = nodeList
-
+            nodes = self.GetNodes(line)
+            if not prevNodeList:
+                self.rootNode = nodes[0] #Begining of the pyramid
+            self.AddChildren(prevNodeList, nodes)
+            prevNodeList = nodes
 
     def MaxSweep(self):
         self.max = None
-        self.Traverse(0,self.rootNode,0)
+        self.memo = {}
+        self.Traverse(0, self.rootNode, 0)
 
-    #Forking off threads to continue job
-    def Traverse(self,sumTillNow,node,nodeDepth):
-         if node.get('left') is None and node.get('right') is None: #We reached a bottom node
+    # Forking off threads to continue job
+    def Traverse(self, sumTillNow, node ,nodeDepth):
+        if node.get('left') is None and node.get('right') is None: #We reached a bottom node
              self.CalculateBottom(sumTillNow, node["data"])
-         else:
+        else:
             self.Traverse(sumTillNow +node["data"],node["left"],nodeDepth)
             self.Traverse(sumTillNow +node["data"],node["right"],nodeDepth)
 
@@ -82,6 +70,5 @@ if len(sys.argv) == 1:
      print "Please enter name of file containing the pyramid of numbers"
 
 pyrData = PyramidGraph(sys.argv[1])
-print "Number of Nodes",pyrData.nodeCount
 pyrData.MaxSweep()
 print "The Maximum value in this pyramid is",pyrData.max
